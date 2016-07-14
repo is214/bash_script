@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ `rpm -qa | grep "td-agent" | wc-l` != "1" ];then
+curl -L 'https://toolbelt.treasuredata.com/sh/install-redhat-td-agent2.sh' | sh
+fi
+
+if [ `rpm -qa | grep "dstat" | wc-l` != "1" ];then
+yum -y install dstat
+fi
+
+if [ `find / -name td-agent-gem | wc -l` == "2" ];then
+/opt/td-agent/usr/sbin/td-agent-gem install fluent-plugin-dstat fluent-plugin-elasticsearch fluent-plugin-map
+else
+exit 1
+fi
