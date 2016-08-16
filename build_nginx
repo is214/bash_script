@@ -1,0 +1,101 @@
+#!/bin/bash
+
+work_dir=/work
+nginx_dir=/usr/local/nginx
+ng_logd=/var/log/nginx
+lock_file=/var/lock/subsys/nginx
+
+if [ ! -e $work_dir ];then
+	mkdir -p $work_dir
+fi
+
+if [ ! -e $nginx_dir ];then
+	mkdir -p $nginx_dir
+fi
+
+if [ ! -e $ng_logd ];then
+	mkdir -p $ng_logd
+fi
+
+yum -y update
+
+yum -y install make wget gcc unzip openssh-clients pcre-devel zlib zlib-devel openssl openssl-devel
+
+useradd --shell /sbin/nologin nginx
+
+cd $work_dir
+
+if [ -e $work_dir/nginx-1.8.1.tar.gz ];then
+	if [ ! -e $work_dir/nginx-1.8.1 ];then
+		tar zxf nginx-1.8.1.tar.gz
+	fi
+	else
+		wget http://nginx.org/download/nginx-1.8.1.tar.gz
+		mv nginx-1.8.1.tar.gz $work_dir
+		tar zxf nginx-1.8.1.tar.gz
+fi
+
+if [  -e $work_dir/master.zip ];then
+	if [ ! -e $work_dir/nginx-rtmp-module-master ];then
+		unzip master.zip
+	fi
+	else
+		wget https://github.com/arut/nginx-rtmp-module/archive/master.zip
+		mv master.zip $work_dir
+		unzip master.zip
+fi
+
+
+if [ `ls -l $nginx_dir | wc -l` == "1" ];then
+cd nginx-1.8.1
+
+./configure \
+ --user=nginx \
+ --group=nginx \
+ --prefix=$nginx_dir \
+ --sbin-path=/usr/sbin/nginx \
+ --conf-path=$nginx_dir/conf/nginx.conf \
+ --error-log-path=/var/log/nginx/error.log \
+ --http-log-path=/var/log/nginx/access.log \
+ --lock-path=/var/lock/nginx.lock \
+ --pid-path=/var/run/nginx.pid \
+ --with-debug \
+ --with-http_ssl_module \
+ --with-http_realip_module \
+ --add-module=../nginx-rtmp-module-master
+
+make && make install
+chown -R /usr/local/nginx
+fi
+
+
+curl https://raw.githubusercontent.com/is214/init/master/nginx > /etc/init.d/nginx && chmod 755 /etc/init.d/nginx
+
+if [ `cat $nginx_dir/conf/nginx.conf | grep "user nginx nginx" | wc -l` != "1" ];then
+	echo 'user nginx nginx;' >> $nginx_dir/conf/nginx.conf
+fi
+
+echo "------------ nginx versions ------------"
+nginx -V 
+echo "------------ nginx versions ------------"
+
+echo "testing start nginx..."
+if [ -e $lock_file ];then
+	/etc/init.d/nginx restart 2>&1 /dev/null
+	if [ -e $lock_file ];then
+		echo "success! Quit this script"
+		exit 0
+	else
+		echo "there was problem when install script."
+		exit 1
+	fi
+else
+        /etc/init.d/nginx start
+        if [ -e $lock_file ];then
+                echo "success! Quit this script"
+                exit 0
+        else
+                echo "there was problem when install script."
+                exit 1
+	fi
+fi
