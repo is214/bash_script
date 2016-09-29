@@ -91,6 +91,16 @@ echo "------------ nginx versions ------------"
 nginx -V 
 echo "------------ nginx versions ------------"
 
+cd /root
+curl 'https://raw.githubusercontent.com/is214/bash_script/master/index.html' -o index.html
+mv /usr/local/nginx/html/index.html /usr/local/nginx/html/index.html.backup
+mv index.html /usr/local/nginx/html/index.html
+
+mv /usr/local/nginx/conf/nginx.conf /usr/local/nginx/conf/nginx.conf.backup
+curl 'https://raw.githubusercontent.com/is214/bash_script/master/nginx.conf' -o nginx.conf
+mv /root/nginx.conf /usr/local/nginx/conf/
+
+
 echo "testing start nginx..."
 if [ -e $lock_file ];then
 	/etc/init.d/nginx restart 2>&1 /dev/null
